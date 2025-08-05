@@ -1,0 +1,52 @@
+name: Ktmorient_Frontend_Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  buildTest:
+    name: Build and Deploy
+    runs-on: self-hosted
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        run: |
+          echo "Bun is already installed"
+
+      - name: Install Dependencies
+        run: |
+          echo "Running Installing Dependencies..."
+          bun install
+
+      - name: Run Build Script
+        run: |
+          echo "Running build script..."
+          bun run build
+
+      - name: Deploy to /var/www/KTM_ORIENT/
+        run: |
+          cd $GITHUB_WORKSPACE
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S rm -rf /var/www/KTM_ORIENT
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /var/www/KTM_ORIENT
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S rsync -aq --delete .next node_modules public package.json /var/www/KTM_ORIENT/
+
+      - name: Run the project on background process
+        run: |
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c '
+            cd /var/www/KTM_ORIENT
+            if pm2 list | grep -q "ktmorient-app"; then
+              pm2 restart ktmorient-app
+            else
+              pm2 start bun --name "ktmorient-app" -- start
+            fi
+          '
+        env:
+          CI: true
