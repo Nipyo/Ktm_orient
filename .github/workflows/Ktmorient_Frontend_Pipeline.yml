@@ -45,7 +45,7 @@ jobs:
             if pm2 list | grep -q "ktmorient-app"; then
               pm2 restart ktmorient-app
             else
-              pm2 start bun --name "ktmorient-app" -- start
+             PORT=3001 pm2 start bun --name "ktmorient-app" -- start
             fi
           '
         env:
